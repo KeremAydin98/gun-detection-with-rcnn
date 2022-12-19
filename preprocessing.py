@@ -30,34 +30,56 @@ class RCNNDataset(Dataset):
 
     def __getitem__(self, ix):
 
+        """
+        Extracting information of a certain image from the dataset
+        :param ix:
+        :return: image, cropped image, bounding box corners, labels, offsets,
+        ground truth bounding box corners, file path
+        """
+
+        # Extracting the image path
         fpath = str(self.fpaths[ix])
 
+        # Reading the image from path
         image = cv2.imread(fpath)
+        # Converting its color scale from BGR to RGB
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
         h,w,_ = image.shape
 
         sh = np.array([w,h,w,h])
 
+        # Ground truth bounding box
         gtbbs = self.gtbbs[ix]
+        # Region of interest
         rois = self.rois[ix]
+        # Bounding box with correct scale for the image so that it can work with any image size
         bbs = (np.array(rois) * sh).astype(np.uint16)
 
+        # Label of the certain image
         labels = self.labels[ix]
+        # Offsets of its bounding box corners
         deltas = self.deltas[ix]
 
+        # Cropping the region proposal by the region of interest locations
         crops = [image[y:Y, x:X] for (x,X,y,Y) in bbs]
 
         return image, crops, bbs, labels, deltas, gtbbs, fpath
 
     def collate_fn(self, batch):
 
-        inputs, rois, rixs, labels, deltas = [], [], [], [], []
+        """
+        inputs: cropped images
+        labels: labels
+        deltas: offsets of bounding box corner locations
+        """
+        inputs, labels, deltas = [], [], []
 
         for ix in range(len(batch)):
 
             image, crops, image_bbs, image_labels, image_deltas, image_gtbbs, image_fpath = batch[ix]
 
+            # resizing the cropped region to the pretrained model input image size
             crops = [cv2.resize(crop, (224,224)) for crop in crops]
             crops = [self.preprocess_image(crop/255) for crop in crops]
 
@@ -65,18 +87,28 @@ class RCNNDataset(Dataset):
             labels.extend([c for c in image_labels])
             deltas.extend(image_deltas)
 
+        # Concatenates the given sequence of seq tensors in the given dimension
         inputs = torch.cat(inputs).to(self.device)
+        # Casting labels to long data type
         labels = torch.Tensor(labels).long().to(self.device)
+        # Casting offsets to float data type
         deltas = torch.Tensor(deltas).float().to(self.device)
 
         return inputs, labels, deltas
 
     def preprocess_image(self, image):
 
+        """
+        Preprocess image to prepare for extracting its feature maps with a pretrained CNN model
+        """
+
+        # Normalization process
         normalize = torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                                      std=[0.229, 0.224, 0.225])
 
+        # Transforming image shape to (Channels, Width, Height)
         image = torch.Tensor(image).permute(2,0,1)
+        # Normalizing image
         image = normalize(image)
 
         return image.to(self.device).float()
