@@ -5,6 +5,7 @@ import torch
 import torchvision
 import config
 
+
 class RCNNDataset(Dataset):
 
     def __init__(self, fpaths, rois, labels, deltas, gtbbs, device):
