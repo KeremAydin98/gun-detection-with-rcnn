@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import torch
 import torchvision
-
+import config
 
 class RCNNDataset(Dataset):
 
@@ -114,6 +114,37 @@ class RCNNDataset(Dataset):
         return image.to(self.device).float()
 
 
+class OpenImages(Dataset):
 
+    def __init__(self, df, image_folder=config.image_root):
+
+        self.root = image_folder
+        self.df = df
+        self.unique_images = df["image_name"].unique()
+
+    def __len__(self):
+
+        return len(self.unique_images)
+
+    def __getitem__(self, ix):
+
+        image_id = self.unique_images[ix]
+
+        image_path = f'{self.root}/{image_id}.jpg'
+
+        image = cv2.imread(image_path)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        h,w,_ = image.shape
+
+        df = self.df.copy()
+        df = df[df["image_name"] == image_id]
+
+        boxes = df[["x_min","ymin","xmax","ymax"]].values
+        boxes = (boxes * np.array([w,h,w,h])).astype(np.uint16).tolist()
+
+        classes = df["labels"].values.tolist()
+
+        return image, boxes, classes, image_path
 
 

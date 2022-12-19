@@ -1,16 +1,17 @@
 import os
 import pandas as pd
 import warnings
+from preprocessing import *
 warnings.filterwarnings("ignore")
 
-label_root = "dataset/Labels/"
+
 df = pd.DataFrame(columns=["image_name", "label", "xmax", "xmin", "ymax", "ymin"])
 
-for i, label in enumerate(os.listdir(label_root)):
+for i, label in enumerate(os.listdir(config.label_root)):
 
     if label.endswith(".txt"):
 
-        with open(label_root + label,"r") as f:
+        with open(config.label_root + label,"r") as f:
 
             lines = f.readlines()
 
