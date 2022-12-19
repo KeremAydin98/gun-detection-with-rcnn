@@ -128,10 +128,13 @@ class OpenImages(Dataset):
 
     def __getitem__(self, ix):
 
+        # Name of the image
         image_id = self.unique_images[ix]
 
+        # Image path
         image_path = f'{self.root}/{image_id}.jpg'
 
+        # Reading the image from path
         image = cv2.imread(image_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
@@ -140,7 +143,7 @@ class OpenImages(Dataset):
         df = self.df.copy()
         df = df[df["image_name"] == image_id]
 
-        boxes = df[["x_min","ymin","xmax","ymax"]].values
+        boxes = df[["xmin","ymin","xmax","ymax"]].values
         boxes = (boxes * np.array([w,h,w,h])).astype(np.uint16).tolist()
 
         classes = df["labels"].values.tolist()
