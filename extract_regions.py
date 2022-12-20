@@ -1,15 +1,15 @@
-import selectivesearch
+from selective_search import selective_search
 import numpy as np
 
 
 def extract_candidates(img):
 
     """
-    Extract the possible regions that contain objects in it
+    Extract the regions that possibly contain objects in it
     """
 
     # Extract regions with selective search method
-    img_label, regions = selectivesearch.selectivesearch(img, scale=200, min_size=100)
+    img_label, regions = selective_search(img, scale=200, min_size=100)
 
     # Return the product of array elements over a given axis
     img_area = np.prod(img.shape[:2])
