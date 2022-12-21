@@ -67,4 +67,35 @@ for ix, (img, bbs, labels, fpath) in enumerate(dataset):
         if best_iou > 0.3: clss.append(labels[best_iou_at])
         else: clss.append('background')
 
-        delta = np.array([x-cx])
+        delta = np.array([x-cx, c-cy, X-cX, Y-cY]) / np.array([w,h,w,h])
+        deltas.append(delta)
+        rois.append(candidate / np.array([w,h,w,h]))
+
+FPATHS.append(fpath)
+IOUS.append(ious)
+ROIS.append(rois)
+CLSS.append(clss)
+DELTAS.append(deltas)
+GTBBS.append(bbs)
+
+FPATHS = [f'{config.image_root}/{str(f)}.jpg' for f in FPATHS]
+
+targets = pd.DataFrame(CLSS.reshape(-1,1), columns=['label'])
+label2target = {1:t for t,1 in enumerate(targets['label'].unique())}
+target2label = {t:1 for t,1 in label2target.items()}
+background_class = label2target['background']
+
+
+"""
+Split dataset into train and test 
+"""
+split_size = 9 * len(FPATHS) // 10
+
+train_ds = RCNNDataset(FPATHS[:split_size], ROIS[:split_size], CLSS[:split_size], DELTAS[:split_size], GTBBS[:split_size])
+test_ds = RCNNDataset(FPATHS[split_size:], ROIS[split_size:], CLSS[split_size:], DELTAS[split_size:], GTBBS[split_size:])
+
+train_dl = DataLoader(train_ds, batch_size=32, collate_fn=train_ds.collate_fn, drop_last=True)
+test_dl = DataLoader(test_ds, batch_size=32, collate_fn=test_ds.collate_fn, drop_last=True)
+
+
+

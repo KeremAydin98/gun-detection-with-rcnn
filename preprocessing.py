@@ -8,7 +8,7 @@ import config
 
 class RCNNDataset(Dataset):
 
-    def __init__(self, fpaths, rois, labels, deltas, gtbbs, device):
+    def __init__(self, fpaths, rois, labels, deltas, gtbbs, label2target, device=torch.device('cpu')):
 
         """
         fpaths: file paths
@@ -23,6 +23,7 @@ class RCNNDataset(Dataset):
         self.labels = labels
         self.deltas = deltas
         self.gtbbs = gtbbs
+        self.label2target = label2target
         self.device = device
 
     def __len__(self):
@@ -85,7 +86,7 @@ class RCNNDataset(Dataset):
             crops = [self.preprocess_image(crop/255) for crop in crops]
 
             inputs.extend(crops)
-            labels.extend([c for c in image_labels])
+            labels.extend([self.label2target(c) for c in image_labels])
             deltas.extend(image_deltas)
 
         # Concatenates the given sequence of seq tensors in the given dimension
