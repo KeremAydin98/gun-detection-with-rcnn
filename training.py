@@ -3,6 +3,7 @@ import pandas as pd
 import warnings
 from preprocessing import *
 from extract_regions import *
+from models import *
 warnings.filterwarnings("ignore")
 
 
@@ -96,6 +97,14 @@ test_ds = RCNNDataset(FPATHS[split_size:], ROIS[split_size:], CLSS[split_size:],
 
 train_dl = DataLoader(train_ds, batch_size=32, collate_fn=train_ds.collate_fn, drop_last=True)
 test_dl = DataLoader(test_ds, batch_size=32, collate_fn=test_ds.collate_fn, drop_last=True)
+
+"""
+Load the pretrained and then RCNN model
+"""
+vgg_base = torchvision.models.vgg16(pretrained=True)
+vgg_base.classifier = nn.Sequential()
+for param in vgg_base.parameters():
+    param.requires_grad = False
 
 
 
