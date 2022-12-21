@@ -54,3 +54,42 @@ class RCNN(nn.Module):
                    detection_loss.detach(), regression_loss
 
 
+def train_batch(inputs, model, optimizer, criterion):
+
+    inpt, clss, deltas = inputs
+
+    model.train()
+
+    optimizer.zero_grad()
+
+    _clss, _deltas = model(inpt)
+
+    loss, ce_loss, l1_loss = criterion(_clss, _deltas, clss, deltas)
+
+    _, _clss = _clss.max(-1)
+
+    accs = clss == _clss
+
+    loss.backward()
+
+    optimizer.step()
+
+    return loss.detach(), ce_loss, l1_loss, accs.cpu().numpy()
+
+@torch.no_grad()
+def validate_batch(inputs, model, criterion):
+
+    inpt, clss, deltas = inputs()
+
+    model.eval()
+
+    _clss, _deltas = model(inpt)
+
+    loss, ce_loss, l1_loss = criterion(_clss, _deltas, clss, deltas)
+
+    _, _clss = _clss.max(-1)
+
+    accs = clss == _clss
+
+    return loss, ce_loss, l1_loss, accs.cpu().numpy()
+
