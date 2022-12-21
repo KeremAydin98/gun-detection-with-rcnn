@@ -82,8 +82,8 @@ GTBBS.append(bbs)
 FPATHS = [f'{config.image_root}/{str(f)}.jpg' for f in FPATHS]
 
 targets = pd.DataFrame(CLSS.reshape(-1,1), columns=['label'])
-label2target = {1:t for t,1 in enumerate(targets['label'].unique())}
-target2label = {t:1 for t,1 in label2target.items()}
+label2target = {i:t for t,i in enumerate(targets['label'].unique())}
+target2label = {t:i for t,i in label2target.items()}
 background_class = label2target['background']
 
 
@@ -106,5 +106,22 @@ vgg_base.classifier = nn.Sequential()
 for param in vgg_base.parameters():
     param.requires_grad = False
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = RCNN(vgg_base, label2target).to(device)
+optimizer = torch.optim.Adam(model.parameters())
+criterion = model.calc_loss
 
+N_EPOCHS = 5
 
+for epoch in range(N_EPOCHS):
+
+    for data in train_dl:
+
+        loss, ce_loss, l1_loss, accuracy = train_batch(data, model, optimizer, criterion)
+
+    for data in test_dl:
+
+        val_loss, val_ce_loss, val_l1_loss, val_accuracy = validate_batch(data, model, criterion)
+
+    print(f"Epoch: {epoch+1}/{N_EPOCHS}, Loss: {loss}, Val_Loss: {val_loss}, "
+          f"Accuracy: {accuracy}, Val_Accuracy: {val_accuracy}")

@@ -1,4 +1,4 @@
-from selective_search import selective_search
+import selective_search
 import numpy as np
 
 
@@ -9,20 +9,24 @@ def extract_candidates(img):
     """
 
     # Extract regions with selective search method
-    img_label, regions = selective_search(img, scale=200, min_size=100)
+    boxes = selective_search.selective_search(img, mode='fast')
+
+    regions = selective_search.box_filter(boxes,
+                                               min_size=20,
+                                               topN=80)
 
     # Return the product of array elements over a given axis
     img_area = np.prod(img.shape[:2])
 
     candidates = []
 
-    for r in regions:
+    for x1,y1,x2,y2 in regions:
 
-        if r['rect'] in candidates: continue
-        if r['size'] < (0.05 * img_area): continue
-        if r['size'] > (img_area): continue
+        if [x1,y1,x2,y2] in candidates: continue
+        if (np.abs(x1-x2) * np.abs(y1-y2)) < (0.05 * img_area): continue
+        if (np.abs(x1-x2) * np.abs(y1-y2)) > (img_area): continue
 
-        candidates.append(list(r['rect']))
+        candidates.append([x1,y1,x2,y2])
 
     return candidates
 

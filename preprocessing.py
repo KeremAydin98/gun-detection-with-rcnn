@@ -134,7 +134,7 @@ class OpenImages(Dataset):
         image_id = self.unique_images[ix]
 
         # Image path
-        image_path = f'{self.root}/{image_id}.jpg'
+        image_path = f'{self.root}{image_id}'
 
         # Reading the image from path
         image = cv2.imread(image_path)
@@ -148,7 +148,7 @@ class OpenImages(Dataset):
         boxes = df[["xmin","ymin","xmax","ymax"]].values
         boxes = (boxes * np.array([w,h,w,h])).astype(np.uint16).tolist()
 
-        classes = df["labels"].values.tolist()
+        classes = df["label"].values.tolist()
 
         return image, boxes, classes, image_path
 
