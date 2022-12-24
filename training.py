@@ -13,6 +13,9 @@ for i, label in enumerate(os.listdir(config.label_root)):
 
     if label.endswith(".txt"):
 
+        img_path = config.image_root + label.split(".")[0] + ".jpeg"
+        img = cv2.imread(img_path)
+
         with open(config.label_root + label,"r") as f:
 
             lines = f.readlines()
@@ -28,8 +31,8 @@ for i, label in enumerate(os.listdir(config.label_root)):
                     b_boxs = [int(loc) for loc in line.replace("\n","").split()]
 
                     df = df.append({"image_name":f"{i+1}.jpeg", "label":label,
-                                    "xmax":b_boxs[0], "xmin":b_boxs[1],
-                                    "ymax":b_boxs[2], "ymin":b_boxs[3]}, ignore_index=True)
+                                    "xmax":b_boxs[0] / img.shape[1], "xmin":b_boxs[1] / img.shape[1],
+                                    "ymax":b_boxs[2] / img.shape[0], "ymin":b_boxs[3] / img.shape[0]}, ignore_index=True)
 
 
 FPATHS, GTBBS, CLSS, DELTAS, ROIS, IOUS = [], [], [], [], [], []
@@ -45,7 +48,7 @@ for ix, (img, bbs, labels, fpath) in enumerate(dataset):
     # Extract candidates from each image
     h, w, _ = img.shape
     candidates = extract_candidates(img)
-    candidates = np.array([(x, y, x+w, y+h) for x,y,w,h in candidates])
+    #candidates = np.array([(x, y, x+w, y+h) for x,y,w,h in candidates])
 
     ious, rois, clss, deltas = [], [], [], []
 
@@ -68,7 +71,7 @@ for ix, (img, bbs, labels, fpath) in enumerate(dataset):
         if best_iou > 0.3: clss.append(labels[best_iou_at])
         else: clss.append('background')
 
-        delta = np.array([x-cx, c-cy, X-cX, Y-cY]) / np.array([w,h,w,h])
+        delta = np.array([x-cx, y-cy, X-cX, Y-cY]) / np.array([w,h,w,h])
         deltas.append(delta)
         rois.append(candidate / np.array([w,h,w,h]))
 
@@ -115,13 +118,21 @@ N_EPOCHS = 5
 
 for epoch in range(N_EPOCHS):
 
+    losses = []
+    accuracies = []
     for data in train_dl:
 
         loss, ce_loss, l1_loss, accuracy = train_batch(data, model, optimizer, criterion)
+        losses.append(loss)
+        accuracies.append(accuracy)
 
+    val_losses = []
+    val_accuracies = []
     for data in test_dl:
 
         val_loss, val_ce_loss, val_l1_loss, val_accuracy = validate_batch(data, model, criterion)
+        val_losses.append(val_loss)
+        val_accuracies.append(val_accuracy)
 
-    print(f"Epoch: {epoch+1}/{N_EPOCHS}, Loss: {loss}, Val_Loss: {val_loss}, "
-          f"Accuracy: {accuracy}, Val_Accuracy: {val_accuracy}")
+    print(f"Epoch: {epoch+1}/{N_EPOCHS}, Loss: {sum(losses) / len(train_dl)}, Val_Loss: {sum(val_losses) / len(test_dl)}, "
+          f"Accuracy: {sum(accuracies) / len(train_dl)}, Val_Accuracy: {sum(val_accuracies) / len(test_dl)}")
