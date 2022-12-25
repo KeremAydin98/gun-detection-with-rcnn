@@ -118,7 +118,7 @@ class RCNNDataset(Dataset):
 
 class OpenImages(Dataset):
 
-    def __init__(self, df, image_folder=config.image_root):
+    def  __init__(self, df, image_folder=config.image_root):
 
         self.root = image_folder
         self.df = df

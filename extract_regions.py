@@ -12,8 +12,8 @@ def extract_candidates(img):
     boxes = selective_search.selective_search(img, mode='fast')
 
     regions = selective_search.box_filter(boxes,
-                                               min_size=20,
-                                               topN=80)
+                                          min_size=20,
+                                          topN=80)
 
     # Return the product of array elements over a given axis
     img_area = np.prod(img.shape[:2])
@@ -37,11 +37,11 @@ def extract_iou(boxA, boxB, epsilon=1e-5):
     Calculates the intersection over union of two anchor boxes
     """
 
-    x1 = min(boxA[0], boxB[0])
-    y1 = min(boxA[1], boxB[1])
+    x1 = max(boxA[0], boxB[0])
+    y1 = max(boxA[1], boxB[1])
 
-    x2 = max(boxA[2], boxB[2])
-    y2 = max(boxA[3], boxB[3])
+    x2 = min(boxA[2], boxB[2])
+    y2 = min(boxA[3], boxB[3])
 
     width = x2 - x1
     height = y2 - y1
