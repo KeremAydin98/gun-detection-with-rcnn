@@ -1,14 +1,13 @@
 import os
 import pandas as pd
 import warnings
-
-import config
 from preprocessing import *
 from extract_regions import *
 from models import *
 warnings.filterwarnings("ignore")
 
 
+print("===Reading data===")
 df = pd.DataFrame(columns=["image_name", "label", "xmax", "xmin", "ymax", "ymin"])
 
 for img_name in os.listdir(config.image_root):
@@ -37,6 +36,7 @@ FPATHS, GTBBS, CLSS, DELTAS, ROIS, IOUS = [], [], [], [], [], []
 
 dataset = OpenImages(df=df)
 
+print("===Extracting Regions===")
 N = 500
 for ix, (img, bbs, labels, fpath) in enumerate(dataset):
 
@@ -46,7 +46,7 @@ for ix, (img, bbs, labels, fpath) in enumerate(dataset):
     # Extract candidates from each image
     h, w, _ = img.shape
     candidates = extract_candidates(img)
-    candidates = np.array([(x, y, x+w, y+h) for x,y,w,h in candidates])
+    candidates = np.array([(x, y, x+w, y+h) for x,y,w,h in candidates]).astype(np.float32)
 
     ious, rois, clss, deltas = [], [], [], []
 
@@ -69,7 +69,7 @@ for ix, (img, bbs, labels, fpath) in enumerate(dataset):
 
         delta = np.array([x-cx, y-cy, X-cX, Y-cY]) / np.array([w,h,w,h])
         deltas.append(delta)
-        rois.append(candidate / np.array([w,h,w,h]))
+        rois.append(candidate / np.array([w,h,w,h]).astype(np.float32))
 
     FPATHS.append(fpath)
     IOUS.append(ious)
@@ -85,7 +85,7 @@ label2target = {i:t for t,i in enumerate(["Gun","background"])}
 target2label = {t:i for t,i in label2target.items()}
 background_class = label2target['background']
 
-
+print("===Split dataset into train and test===")
 """
 Split dataset into train and test 
 """

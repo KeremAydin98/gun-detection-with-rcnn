@@ -8,6 +8,7 @@ def extract_candidates(img):
     Extract the regions that possibly contain objects in it
     """
 
+    h,w,_ = img.shape
     # Extract regions with selective search method
     boxes = selective_search.selective_search(img, mode='fast')
 
@@ -23,8 +24,9 @@ def extract_candidates(img):
     for x1,y1,x2,y2 in regions:
 
         if [x1,y1,x2,y2] in candidates: continue
-        if (np.abs(x1-x2) * np.abs(y1-y2)) < (0.05 * img_area): continue
-        if (np.abs(x1-x2) * np.abs(y1-y2)) > (img_area): continue
+        if x2 > w or x1 > w or y1 > h or y2 > h: continue
+        if (abs(x1-x2) * abs(y1-y2)) <= (0.05 * img_area): continue
+        if (abs(x1-x2) * abs(y1-y2)) >= (img_area): continue
 
         candidates.append([x1,y1,x2,y2])
 
@@ -52,8 +54,8 @@ def extract_iou(boxA, boxB, epsilon=1e-5):
 
     area_overlap = width * height
 
-    area_a = np.abs(boxA[2] - boxA[0]) * np.abs(boxA[3] - boxA[1])
-    area_b = np.abs(boxB[2] - boxB[0]) * np.abs(boxB[3] - boxB[1])
+    area_a = abs(boxA[2] - boxA[0]) * abs(boxA[3] - boxA[1])
+    area_b = abs(boxB[2] - boxB[0]) * abs(boxB[3] - boxB[1])
 
     area_combined = area_a + area_b - area_overlap
 

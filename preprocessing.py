@@ -41,9 +41,10 @@ class RCNNDataset(Dataset):
 
         # Extracting the image path
         fpath = str(self.fpaths[ix])
-
+        
         # Reading the image from path
         image = cv2.imread(fpath)
+
         # Converting its color scale from BGR to RGB
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
@@ -64,8 +65,7 @@ class RCNNDataset(Dataset):
         deltas = self.deltas[ix]
 
         # Cropping the region proposal by the region of interest locations
-        crops = [image[y:Y, x:X] for (x,X,y,Y) in bbs]
-
+        crops = [image[y:Y, x:X] for (x,y,X,Y) in bbs]
         return image, crops, bbs, labels, deltas, gtbbs, fpath
 
     def collate_fn(self, batch):
@@ -80,13 +80,12 @@ class RCNNDataset(Dataset):
         for ix in range(len(batch)):
 
             image, crops, image_bbs, image_labels, image_deltas, image_gtbbs, image_fpath = batch[ix]
-
             # resizing the cropped region to the pretrained model input image size
             crops = [cv2.resize(crop, (224,224)) for crop in crops]
             crops = [self.preprocess_image(crop/255) for crop in crops]
 
             inputs.extend(crops)
-            labels.extend([self.label2target(c) for c in image_labels])
+            labels.extend([self.label2target[c] for c in image_labels])
             deltas.extend(image_deltas)
 
         # Concatenates the given sequence of seq tensors in the given dimension
@@ -118,7 +117,7 @@ class RCNNDataset(Dataset):
 
 class OpenImages(Dataset):
 
-    def  __init__(self, df, image_folder=config.image_root):
+    def __init__(self, df, image_folder=config.image_root):
 
         self.root = image_folder
         self.df = df
