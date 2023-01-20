@@ -82,14 +82,14 @@ class RCNNDataset(Dataset):
             image, crops, image_bbs, image_labels, image_deltas, image_gtbbs, image_fpath = batch[ix]
             # resizing the cropped region to the pretrained model input image size
             crops = [cv2.resize(crop, (224,224)) for crop in crops]
-            crops = [self.preprocess_image(crop/255) for crop in crops]
+            crops = [self.preprocess_image(crop) for crop in crops]
 
             inputs.extend(crops)
             labels.extend([self.label2target[c] for c in image_labels])
             deltas.extend(image_deltas)
 
         # Concatenates the given sequence of seq tensors in the given dimension
-        inputs = torch.cat(inputs).to(self.device)
+        inputs = torch.Tensor(inputs).float().to(self.device)
         # Casting labels to long data type
         labels = torch.Tensor(labels).long().to(self.device)
         # Casting offsets to float data type
@@ -141,13 +141,13 @@ class OpenImages(Dataset):
 
         h,w,_ = image.shape
 
-        df = self.df.copy()
-        df = df[df["image_name"] == image_id]
+        df_copy = self.df.copy()
+        df_copy = df_copy[df_copy["image_name"] == image_id]
 
-        boxes = df[["xmin","ymin","xmax","ymax"]].values
+        boxes = df_copy[["xmin","ymin","xmax","ymax"]].values
         boxes = (boxes * np.array([w,h,w,h])).astype(np.uint16).tolist()
 
-        classes = df["label"].values.tolist()
+        classes = df_copy["label"].values.tolist()
 
         return image, boxes, classes, image_path
 

@@ -62,10 +62,6 @@ def train_batch(inputs, model, optimizer, criterion):
 
     optimizer.zero_grad()
 
-    print(inpt)
-    print(type(inpt))
-    print(inpt.shape)
-
     _clss, _deltas = model(inpt)
 
     loss, ce_loss, l1_loss = criterion(_clss, _deltas, clss, deltas)

@@ -21,17 +21,27 @@ for img_name in os.listdir(config.image_root):
         with open(config.label_root + img_name.split(".")[0] + ".txt","r") as f:
 
             lines = f.readlines()
-            n_boxes = int(lines[0].replace("\n","")) + 1
+            n_boxes = int(lines[0].replace("\n",""))
 
-            for n in range(1,n_boxes):
+            for n in range(0,n_boxes):
 
-                b_boxs = [int(loc) for loc in lines[n].replace("\n","").split()]
+                b_boxs = [int(loc) for loc in lines[n+1].replace("\n","").split()]
 
                 df = df.append({"image_name":img_name, "label":"Gun",
-                                "xmax":b_boxs[0] / img.shape[1], "xmin":b_boxs[1] / img.shape[1],
-                                "ymax":b_boxs[2] / img.shape[0], "ymin":b_boxs[3] / img.shape[0]}, ignore_index=True)
+                                "xmax":b_boxs[0] / img.shape[0], "xmin":b_boxs[1] / img.shape[0],
+                                "ymax":b_boxs[2] / img.shape[1], "ymin":b_boxs[3] / img.shape[1]}, ignore_index=True)
 
+    if len(df) > 5:
+        break
 
+"""
+    fpaths: file paths
+    gtbbs: ground truth bounding boxes
+    clss: classes of the object
+    deltas: offset of ground truth to proposed bounding box
+    rois: region proposal locations
+    ious: interest of unions
+"""
 FPATHS, GTBBS, CLSS, DELTAS, ROIS, IOUS = [], [], [], [], [], []
 
 dataset = OpenImages(df=df)
@@ -46,7 +56,6 @@ for ix, (img, bbs, labels, fpath) in enumerate(dataset):
     # Extract candidates from each image
     h, w, _ = img.shape
     candidates = extract_candidates(img)
-    candidates = np.array([(x, y, x+w, y+h) for x,y,w,h in candidates]).astype(np.float32)
 
     ious, rois, clss, deltas = [], [], [], []
 
@@ -56,7 +65,7 @@ for ix, (img, bbs, labels, fpath) in enumerate(dataset):
     # Loop through each candidate and store the xmin, ymin, xmax, ymax
     for jx, candidate in enumerate(candidates):
 
-        cx, cy, cX, cY = candidate
+        cX, cx, cY, cy = candidate
 
         # Find the index of a candidate(best_iou_at) that has the highest IOU
         # And the ground truth(best_bb)
@@ -80,7 +89,8 @@ for ix, (img, bbs, labels, fpath) in enumerate(dataset):
 
 FPATHS = [f'{str(f)}' for f in FPATHS]
 
-targets = pd.DataFrame(np.array(CLSS).reshape(-1,1), columns=['label'])
+targets = pd.DataFrame()
+targets['label'] = CLSS
 label2target = {i:t for t,i in enumerate(["Gun","background"])}
 target2label = {t:i for t,i in label2target.items()}
 background_class = label2target['background']
@@ -94,8 +104,8 @@ split_size = 9 * len(FPATHS) // 10
 train_ds = RCNNDataset(FPATHS[:split_size], ROIS[:split_size], CLSS[:split_size], DELTAS[:split_size], GTBBS[:split_size], label2target)
 test_ds = RCNNDataset(FPATHS[split_size:], ROIS[split_size:], CLSS[split_size:], DELTAS[split_size:], GTBBS[split_size:], label2target)
 
-train_dl = DataLoader(train_ds, batch_size=32, collate_fn=train_ds.collate_fn, drop_last=True)
-test_dl = DataLoader(test_ds, batch_size=32, collate_fn=test_ds.collate_fn, drop_last=True)
+train_dl = DataLoader(train_ds, batch_size=2, collate_fn=train_ds.collate_fn, drop_last=True)
+test_dl = DataLoader(test_ds, batch_size=2, collate_fn=test_ds.collate_fn, drop_last=True)
 
 """
 Load the pretrained and then RCNN model
