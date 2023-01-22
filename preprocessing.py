@@ -82,14 +82,14 @@ class RCNNDataset(Dataset):
             image, crops, image_bbs, image_labels, image_deltas, image_gtbbs, image_fpath = batch[ix]
             # resizing the cropped region to the pretrained model input image size
             crops = [cv2.resize(crop, (224,224)) for crop in crops]
-            crops = [self.preprocess_image(crop) for crop in crops]
+            crops = [self.preprocess_image(crop)[None] for crop in crops]
 
             inputs.extend(crops)
             labels.extend([self.label2target[c] for c in image_labels])
             deltas.extend(image_deltas)
 
         # Concatenates the given sequence of seq tensors in the given dimension
-        inputs = torch.Tensor(inputs).float().to(self.device)
+        inputs = torch.cat(inputs).to(self.device)
         # Casting labels to long data type
         labels = torch.Tensor(labels).long().to(self.device)
         # Casting offsets to float data type

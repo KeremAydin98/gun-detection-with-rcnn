@@ -31,8 +31,6 @@ for img_name in os.listdir(config.image_root):
                                 "xmax":b_boxs[0] / img.shape[0], "xmin":b_boxs[1] / img.shape[0],
                                 "ymax":b_boxs[2] / img.shape[1], "ymin":b_boxs[3] / img.shape[1]}, ignore_index=True)
 
-    if len(df) > 5:
-        break
 
 """
     fpaths: file paths
@@ -47,7 +45,7 @@ FPATHS, GTBBS, CLSS, DELTAS, ROIS, IOUS = [], [], [], [], [], []
 dataset = OpenImages(df=df)
 
 print("===Extracting Regions===")
-N = 500
+N = 5
 for ix, (img, bbs, labels, fpath) in enumerate(dataset):
 
     if (ix == N):
@@ -104,18 +102,20 @@ split_size = 9 * len(FPATHS) // 10
 train_ds = RCNNDataset(FPATHS[:split_size], ROIS[:split_size], CLSS[:split_size], DELTAS[:split_size], GTBBS[:split_size], label2target)
 test_ds = RCNNDataset(FPATHS[split_size:], ROIS[split_size:], CLSS[split_size:], DELTAS[split_size:], GTBBS[split_size:], label2target)
 
-train_dl = DataLoader(train_ds, batch_size=2, collate_fn=train_ds.collate_fn, drop_last=True)
-test_dl = DataLoader(test_ds, batch_size=2, collate_fn=test_ds.collate_fn, drop_last=True)
+train_dl = DataLoader(train_ds, batch_size=1, collate_fn=train_ds.collate_fn, drop_last=True)
+test_dl = DataLoader(test_ds, batch_size=1, collate_fn=test_ds.collate_fn, drop_last=True)
 
 """
 Load the pretrained and then RCNN model
 """
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 vgg_base = torchvision.models.vgg16(pretrained=True)
 vgg_base.classifier = nn.Sequential()
 for param in vgg_base.parameters():
     param.requires_grad = False
+vgg_base.eval().to(device)
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = RCNN(vgg_base, label2target).to(device)
 optimizer = torch.optim.Adam(model.parameters())
 criterion = model.calc_loss
@@ -130,7 +130,7 @@ for epoch in range(N_EPOCHS):
 
         loss, ce_loss, l1_loss, accuracy = train_batch(data, model, optimizer, criterion)
         losses.append(loss)
-        accuracies.append(accuracy)
+        accuracies.append(sum(accuracy))
 
     val_losses = []
     val_accuracies = []
@@ -138,7 +138,8 @@ for epoch in range(N_EPOCHS):
 
         val_loss, val_ce_loss, val_l1_loss, val_accuracy = validate_batch(data, model, criterion)
         val_losses.append(val_loss)
-        val_accuracies.append(val_accuracy)
+        val_accuracies.append(sum(val_accuracy))
+
 
     print(f"Epoch: {epoch+1}/{N_EPOCHS}, Loss: {sum(losses) / len(train_dl)}, Val_Loss: {sum(val_losses) / len(test_dl)}, "
           f"Accuracy: {sum(accuracies) / len(train_dl)}, Val_Accuracy: {sum(val_accuracies) / len(test_dl)}")
