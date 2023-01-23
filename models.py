@@ -87,11 +87,9 @@ def validate_batch(inputs, model, criterion):
 
     loss, ce_loss, l1_loss = criterion(_clss, _deltas, clss, deltas)
 
-    _, _clss = _clss.max(-1)
+    accs = clss == decode(_clss)
 
-    accs = clss == _clss
-
-    return loss, ce_loss, l1_loss, accs.cpu().numpy()
+    return loss.detach(), ce_loss, l1_loss, accs.cpu().numpy()
 
 def decode(_y):
     _, preds = _y.max(-1)

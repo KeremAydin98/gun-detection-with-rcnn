@@ -45,7 +45,7 @@ FPATHS, GTBBS, CLSS, DELTAS, ROIS, IOUS = [], [], [], [], [], []
 dataset = OpenImages(df=df)
 
 print("===Extracting Regions===")
-N = 5
+N = 20
 for ix, (img, bbs, labels, fpath) in enumerate(dataset):
 
     if (ix == N):
@@ -55,7 +55,7 @@ for ix, (img, bbs, labels, fpath) in enumerate(dataset):
     h, w, _ = img.shape
     candidates = extract_candidates(img)
 
-    ious, rois, clss, deltas = [], [], [], []
+    rois, clss, deltas = [], [], []
 
     # Store the IOU of all candidates with respect to all ground truths
     ious = np.array([extract_iou(candidate, bb) for candidate in candidates for bb in bbs]).T
@@ -93,9 +93,9 @@ label2target = {i:t for t,i in enumerate(["Gun","background"])}
 target2label = {t:i for t,i in label2target.items()}
 background_class = label2target['background']
 
-print("===Split dataset into train and test===")
+print("===Splitting dataset into train and test===")
 """
-Split dataset into train and test 
+Splitting dataset into train and test 
 """
 split_size = 9 * len(FPATHS) // 10
 
@@ -105,6 +105,8 @@ test_ds = RCNNDataset(FPATHS[split_size:], ROIS[split_size:], CLSS[split_size:],
 train_dl = DataLoader(train_ds, batch_size=1, collate_fn=train_ds.collate_fn, drop_last=True)
 test_dl = DataLoader(test_ds, batch_size=1, collate_fn=test_ds.collate_fn, drop_last=True)
 
+
+print("===Load the pretrained and then RCNN model===")
 """
 Load the pretrained and then RCNN model
 """
@@ -122,6 +124,10 @@ criterion = model.calc_loss
 
 N_EPOCHS = 5
 
+print("===Training the model===")
+"""
+Training the model
+"""
 for epoch in range(N_EPOCHS):
 
     losses = []
@@ -139,7 +145,6 @@ for epoch in range(N_EPOCHS):
         val_loss, val_ce_loss, val_l1_loss, val_accuracy = validate_batch(data, model, criterion)
         val_losses.append(val_loss)
         val_accuracies.append(sum(val_accuracy))
-
 
     print(f"Epoch: {epoch+1}/{N_EPOCHS}, Loss: {sum(losses) / len(train_dl)}, Val_Loss: {sum(val_losses) / len(test_dl)}, "
           f"Accuracy: {sum(accuracies) / len(train_dl)}, Val_Accuracy: {sum(val_accuracies) / len(test_dl)}")
